@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 import weakref
 
+from rq.timeouts import JobTimeoutException
+from rq.worker import Worker
 from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration
 from sentry_sdk.utils import capture_internal_exceptions, event_from_exception
-
-from rq.timeouts import JobTimeoutException
-from rq.worker import Worker
 
 
 class RqIntegration(Integration):
@@ -25,9 +24,11 @@ class RqIntegration(Integration):
             if integration is None:
                 return old_perform_job(self, job, *args, **kwargs)
 
-            with hub.push_scope() as scope:
-                scope.add_event_processor(_make_event_processor(weakref.ref(job)))
-                rv = old_perform_job(self, job, *args, **kwargs)
+            with Hub(hub) as hub:
+                with hub.configure_scope() as scope:
+                    scope.add_event_processor(
+                        _make_event_processor(weakref.ref(job)))
+                    rv = old_perform_job(self, job, *args, **kwargs)
 
             if self.is_horse:
                 # We're inside of a forked process and RQ is
@@ -72,7 +73,8 @@ def _make_event_processor(weak_job):
         if "exc_info" in hint:
             with capture_internal_exceptions():
                 if issubclass(hint["exc_info"][0], JobTimeoutException):
-                    event["fingerprint"] = ["rq", "JobTimeoutException", job.func_name]
+                    event["fingerprint"] = [
+                        "rq", "JobTimeoutException", job.func_name]
 
         return event
 

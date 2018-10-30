@@ -8,11 +8,11 @@ Sentry-Python - Sentry SDK for Python
 <https://github.com/getsentry/sentry-python>`_ to find out more.
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="sentry-sdk",
-    version="0.5.2",
+    version="0.5.3",
     author="Sentry Team and Contributors",
     author_email="hello@getsentry.com",
     url="https://github.com/getsentry/sentry-python",
